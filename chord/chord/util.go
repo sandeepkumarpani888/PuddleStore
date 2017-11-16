@@ -64,10 +64,10 @@ func Between(nodeX, nodeA, nodeB []byte) bool {
 	diffXA := big.Int{}
 	diffXA.Sub(&xInt, &aInt)
 
-	diffXB := big.Int{}
-	diffXB.Sub(&bInt, &xInt)
+	diffBX := big.Int{}
+	diffBX.Sub(&bInt, &xInt)
 
-	if diffXA.Int64() > 0 && diffXB.Int64() > 0 {
+	if diffXA.Sign() == 1 && diffBX.Sign() == 1 {
 		return true
 	}
 	return false
@@ -88,10 +88,10 @@ func BetweenRightIncl(nodeX, nodeA, nodeB []byte) bool {
 	diffXA := big.Int{}
 	diffXA.Sub(&xInt, &aInt)
 
-	diffXB := big.Int{}
-	diffXB.Sub(&bInt, &xInt)
+	diffBX := big.Int{}
+	diffBX.Sub(&bInt, &xInt)
 
-	if diffXA.Int64() > 0 && diffXB.Int64() >= 0 {
+	if diffXA.Sign() == 1 && diffBX.Sign() >= 0 {
 		return true
 	}
 	return false
