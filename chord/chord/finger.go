@@ -8,18 +8,25 @@ package chord
 
 import (
 	"fmt"
+	"math/big"
 	"time"
 )
 
 /* A single finger table entry */
 type FingerEntry struct {
-	Start []byte       /* ID hash of (n + 2^i) mod (2^m)  */
-	Node  *RemoteNode  /* RemoteNode that Start points to */
+	Start []byte      /* ID hash of (n + 2^i) mod (2^m)  */
+	Node  *RemoteNode /* RemoteNode that Start points to */
 }
 
 /* Create initial finger table that only points to itself, will be fixed later */
 func (node *Node) initFingerTable() {
-	//TODO students should implement this method
+	node.ftLock.Lock()
+	fingerTableEntry := FingerEntry{
+		Start: node.Id,
+		Node:  node.RemoteSelf,
+	}
+	node.FingerTable = append(node.FingerTable, fingerTableEntry)
+	defer node.ftLock.Unlock()
 }
 
 /* Called periodically (in a seperate go routine) to fix entries in our finger table. */
@@ -31,8 +38,19 @@ func (node *Node) fixNextFinger(ticker *time.Ticker) {
 
 /* (n + 2^i) mod (2^m) */
 func fingerMath(n []byte, i int, m int) []byte {
-	//TODO students should implement this method
-	return nil
+	nInt := big.Int{}
+	nInt.SetBytes(n)
+
+	iInt := big.NewInt(1)
+	iInt.Lsh(iInt, uint(i))
+
+	mInt := big.NewInt(1)
+	mInt.Lsh(mInt, uint(m))
+
+	res := big.Int{}
+	res.Add(&nInt, iInt)
+	res.Mod(&res, mInt)
+	return res.Bytes()
 }
 
 /* Print contents of a node's finger table */
