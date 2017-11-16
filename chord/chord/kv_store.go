@@ -18,14 +18,21 @@ import (
 /* Get a value in the datastore, provided an abitrary node in the ring */
 func Get(node *Node, key string) (string, error) {
 
-	//TODO students should implement this method
+	node.dsLock.RLock()
+	defer node.dsLock.RUnlock()
+	value, ok := node.dataStore[key]
+	if ok {
+		return value, nil
+	}
 	return "", nil
 }
 
 /* Put a key/value in the datastore, provided an abitrary node in the ring */
 func Put(node *Node, key string, value string) error {
 
-	//TODO students should implement this method
+	node.dsLock.Lock()
+	node.dataStore[key] = value
+	defer node.dsLock.Unlock()
 	return nil
 }
 
