@@ -7,13 +7,14 @@
 package chord
 
 import (
-	"../../cs138"
 	"fmt"
 	"log"
 	"net"
 	"net/rpc"
 	"sync"
 	"time"
+
+	"../../cs138"
 )
 
 // Number of bits (i.e. M value), assumes <= 128 and divisible by 8
@@ -132,6 +133,7 @@ func (node *Node) startRpcServer() {
 func ShutdownNode(node *Node) {
 	node.IsShutdown = true
 	// Wait for go routines to quit, should be enough time.
+	// We will be the judge to that.
 	time.Sleep(time.Millisecond * 2000)
 	node.Listener.Close()
 
