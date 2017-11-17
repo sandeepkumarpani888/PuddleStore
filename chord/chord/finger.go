@@ -21,12 +21,49 @@ type FingerEntry struct {
 /* Create initial finger table that only points to itself, will be fixed later */
 func (node *Node) initFingerTable() {
 	node.ftLock.Lock()
-	fingerTableEntry := FingerEntry{
-		Start: node.Id,
-		Node:  node.RemoteSelf,
+	byteLength := len(node.Id)
+	remoteNode := new(RemoteNode)
+	remoteNode.Addr = node.Addr
+	remoteNode.Id = node.Id
+
+	for id := 0; id <= byteLength; id++ {
+		fingerTableEntry := FingerEntry{}
+		fingerTableEntry.Node = remoteNode
+		fingerTableEntry.Start = fingerMath(node.Id, id, byteLength)
+
+		node.FingerTable = append(node.FingerTable, fingerTableEntry)
 	}
-	node.FingerTable = append(node.FingerTable, fingerTableEntry)
+
 	defer node.ftLock.Unlock()
+}
+
+func (node *Node) updateOthers() error {
+	//TODO
+}
+
+func (node *Node) fixFingerTable(other *RemoteNode) error {
+	node.ftLock.Lock()
+	defer node.ftLock.Unlock()
+	currentRemoteNode := new(RemoteNode)
+	currentRemoteNode.Addr = node.Addr
+	currentRemoteNode.Id = node.Id
+	remoteNodeForTheFirstEntryInFingerTable, _ := FindSuccessor_RPC(other, node.FingerTable[1].Start)
+	node.FingerTable[1].Node = remoteNodeForTheFirstEntryInFingerTable
+	predecessorOfNode, _ := GetPredecessorId_RPC(node.FingerTable[1].Node)
+	node.Predecessor = predecessorOfNode
+	Notify_RPC(node.FingerTable[1].Node, currentRemoteNode)
+
+	byteLength := len(node.Id)
+
+	for id := 1; id < byteLength; id++ {
+		if Between(node.FingerTable[id+1].Start, node.Id, node.FingerTable[id].Node.Id) {
+			node.FingerTable[id+1].Node = node.FingerTable[id].Node
+		} else {
+			successorNode, _ := FindSuccessor_RPC(other, node.FingerTable[id+1].Start)
+			node.FingerTable[id+1].Node = successorNode
+		}
+	}
+	return nil
 }
 
 /* Called periodically (in a seperate go routine) to fix entries in our finger table. */
