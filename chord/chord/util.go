@@ -52,22 +52,24 @@ B-\   /-X
    ---
 */
 func Between(nodeX, nodeA, nodeB []byte) bool {
-	aInt := big.Int{}
+	aInt := new(big.Int)
 	aInt.SetBytes(nodeA)
 
-	bInt := big.Int{}
+	bInt := new(big.Int)
 	bInt.SetBytes(nodeB)
 
-	xInt := big.Int{}
+	xInt := new(big.Int)
 	xInt.SetBytes(nodeX)
 
-	diffXA := big.Int{}
-	diffXA.Sub(&xInt, &aInt)
+	if xInt.Cmp(aInt) == 1 && bInt.Cmp(xInt) == 1 {
+		return true
+	}
 
-	diffBX := big.Int{}
-	diffBX.Sub(&bInt, &xInt)
+	if bInt.Cmp(xInt) == 1 && aInt.Cmp(bInt) == 1 {
+		return true
+	}
 
-	if diffXA.Sign() == 1 && diffBX.Sign() == 1 {
+	if bInt.Cmp(aInt) == 1 && xInt.Cmp(aInt) == 1 {
 		return true
 	}
 	return false
@@ -75,23 +77,22 @@ func Between(nodeX, nodeA, nodeB []byte) bool {
 
 /* Is X between (A : B] */
 func BetweenRightIncl(nodeX, nodeA, nodeB []byte) bool {
-
-	aInt := big.Int{}
+	// 2 cases, a < x and x <= b
+	// x <= b && b < a
+	aInt := new(big.Int)
 	aInt.SetBytes(nodeA)
 
-	bInt := big.Int{}
+	bInt := new(big.Int)
 	bInt.SetBytes(nodeB)
 
-	xInt := big.Int{}
+	xInt := new(big.Int)
 	xInt.SetBytes(nodeX)
 
-	diffXA := big.Int{}
-	diffXA.Sub(&xInt, &aInt)
+	if xInt.Cmp(aInt) == 1 && bInt.Cmp(xInt) >= 0 {
+		return true
+	}
 
-	diffBX := big.Int{}
-	diffBX.Sub(&bInt, &xInt)
-
-	if diffXA.Sign() == 1 && diffBX.Sign() >= 0 {
+	if bInt.Cmp(xInt) >= 0 && aInt.Cmp(bInt) == 1 {
 		return true
 	}
 	return false
