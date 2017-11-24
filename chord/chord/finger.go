@@ -21,7 +21,8 @@ type FingerEntry struct {
 /* Create initial finger table that only points to itself, will be fixed later */
 // TODO: Write test for this function
 func (node *Node) initFingerTable() {
-	for index := 1; index <= node.BYTE_LENGTH; index++ {
+	// add a 0 index to make handling array easier
+	for index := 0; index <= node.BYTE_LENGTH; index++ {
 		node.FingerTable = append(node.FingerTable, FingerEntry{
 			Start: fingerMath(node.Id, index, node.BYTE_LENGTH),
 			Node:  node.RemoteSelf,
