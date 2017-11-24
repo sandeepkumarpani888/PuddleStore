@@ -46,13 +46,27 @@ func (node *Node) GetSuccessorId(req *RemoteId, reply *IdReply) error {
 	if err := validateRpc(node, req.Id); err != nil {
 		return err
 	}
-	//TODO students should implement this method
+	node.dataMembersLock.Lock()
+	defer node.dataMembersLock.Unlock()
+	if node.Successor == nil {
+		reply.Id = nil
+		reply.Addr = ""
+		reply.Valid = false
+	} else {
+		reply.Id = node.Successor.Id
+		reply.Addr = node.Successor.Addr
+		reply.Valid = true
+	}
 	return nil
 }
 
 /* RPC */
 func (node *Node) Notify(remoteNode *RemoteNode, reply *RpcOkay) error {
-	//TODO students should implement this method
+	node.dataMembersLock.Lock()
+	if node.Predecessor == nil || Between(remoteNode.Id, node.Predecessor.Id, node.Id) {
+		node.Predecessor = remoteNode
+	}
+	node.dataMembersLock.Unlock()
 	return nil
 }
 
@@ -61,7 +75,17 @@ func (node *Node) FindSuccessor(query *RemoteQuery, reply *IdReply) error {
 	if err := validateRpc(node, query.FromId); err != nil {
 		return err
 	}
-	//TODO students should implement this method
+	succesorNode, err := node.findSuccessor(query.Id)
+	if err != nil {
+		reply.Id = nil
+		reply.Addr = ""
+		reply.Valid = false
+		return err
+	} else {
+		reply.Id = succesorNode.Id
+		reply.Addr = succesorNode.Addr
+		reply.Valid = true
+	}
 	return nil
 }
 
@@ -71,6 +95,40 @@ func (node *Node) ClosestPrecedingFinger(query *RemoteQuery, reply *IdReply) err
 		return err
 	}
 
-	//TODO students should implement this method
+	remoteNode, err := node.findClosestPrecedingFinger(query.Id)
+	if err != nil {
+		reply.Id = nil
+		reply.Addr = ""
+		reply.Valid = false
+		return err
+	} else {
+		reply.Id = remoteNode.Id
+		reply.Addr = remoteNode.Addr
+		reply.Valid = true
+	}
 	return nil
+}
+
+/* RPC */
+func (node *Node) UpdateFingerTable(query *RemoteFingerEntry, reply *RpcOkay) error {
+	if err := validateRpc(node, query.FromId); err != nil {
+		return err
+	}
+	err := node.updateFingerTable(&RemoteNode{
+		Id:   query.Id,
+		Addr: query.Addr,
+	}, query.Index)
+	return err
+}
+
+/* RPC */
+func (node *Node) SetPredecessor(query *RemoteSetPredecessor, reply *RpcOkay) error {
+	if err := validateRpc(node, query.FromId); err != nil {
+		return err
+	}
+	err := node.setPredecessor(&RemoteNode{
+		Id:   query.Id,
+		Addr: query.Addr,
+	})
+	return err
 }

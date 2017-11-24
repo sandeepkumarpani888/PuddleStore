@@ -93,7 +93,30 @@ func BetweenRightIncl(nodeX, nodeA, nodeB []byte) bool {
 	if bInt.Cmp(&aInt) == -1 && xInt.Cmp(&aInt) == 1 && xInt.Cmp(&bInt) <= 1 {
 		return true
 	}
-	if bInt.Cmp(&aInt) == -1 && xInt.Cmp(&aInt) == -1 && xInt.Cmp(&bInt) >= -1 {
+	if bInt.Cmp(&aInt) == -1 && xInt.Cmp(&aInt) == -1 && xInt.Cmp(&bInt) <= 0 {
+		return true
+	}
+	return false
+}
+
+/* Is X between [A: B) */
+func BetweenLeftIncl(nodeX, nodeA, nodeB []byte) bool {
+	aInt := big.Int{}
+	aInt.SetBytes(nodeA)
+
+	bInt := big.Int{}
+	bInt.SetBytes(nodeB)
+
+	xInt := big.Int{}
+	xInt.SetBytes(nodeX)
+
+	if xInt.Cmp(&aInt) <= 0 && bInt.Cmp(&aInt) == 1 && bInt.Cmp(&xInt) == 1 {
+		return true
+	}
+	if bInt.Cmp(&aInt) == -1 && xInt.Cmp(&aInt) <= 0 && bInt.Cmp(&xInt) == 1 {
+		return true
+	}
+	if bInt.Cmp(&aInt) == -1 && xInt.Cmp(&aInt) <= 1 && xInt.Cmp(&bInt) == -1 {
 		return true
 	}
 	return false

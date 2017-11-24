@@ -21,6 +21,19 @@ type RemoteQuery struct {
 	Id     []byte
 }
 
+type RemoteFingerEntry struct {
+	FromId []byte
+	Id     []byte
+	Addr   string
+	Index  int
+}
+
+type RemoteSetPredecessor struct {
+	FromId []byte
+	Id     []byte
+	Addr   string
+}
+
 type IdReply struct {
 	Id    []byte
 	Addr  string
@@ -127,6 +140,42 @@ func FindSuccessor_RPC(remoteNode *RemoteNode, id []byte) (*RemoteNode, error) {
 	rNode.Id = reply.Id
 	rNode.Addr = reply.Addr
 	return rNode, err
+}
+
+/* Find the predecessor node of a given ID in the entire ring. */
+func FindPredecessor_RPC(remoteNode *RemoteNode, id []byte) (*RemoteNode, error) {
+	if remoteNode == nil {
+		return nil, errors.New("RemoteNode is empty!")
+	}
+	var reply IdReply
+	err := makeRemoteCall(remoteNode, "FindPredecessor", RemoteQuery{remoteNode.Id, id}, &reply)
+
+	rNode := new(RemoteNode)
+	rNode.Id = reply.Id
+	rNode.Addr = reply.Addr
+	return rNode, err
+}
+
+/* Update the finger table  */
+func UpdateFingerTable_RPC(remoteNode *RemoteNode, other *RemoteNode, index int) error {
+	if remoteNode == nil {
+		return errors.New("RemoteNode is empty!")
+	}
+	var reply RpcOkay
+	err := makeRemoteCall(remoteNode, "UpdateFingerTable", RemoteFingerEntry{remoteNode.Id, other.Id, other.Addr, index}, &reply)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func SetPredecessor(remoteNode, other *RemoteNode) error {
+	if remoteNode == nil {
+		return errors.New("RemoteNode is empty!")
+	}
+	var reply RpcOkay
+	err := makeRemoteCall(remoteNode, "SetPredecessor", RemoteSetPredecessor{remoteNode.Id, other.Id, other.Addr}, &reply)
+	return err
 }
 
 /*                   */

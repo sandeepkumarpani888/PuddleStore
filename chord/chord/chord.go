@@ -31,18 +31,19 @@ type RemoteNode struct {
 
 /* Local node representation */
 type Node struct {
-	Id          []byte            /* Unique Node ID */
-	Listener    net.Listener      /* Node listener socket */
-	Addr        string            /* String of listener address */
-	Successor   *RemoteNode       /* This Node's successor */
-	Predecessor *RemoteNode       /* This Node's predecessor */
-	RemoteSelf  *RemoteNode       /* Remote node of our self */
-	IsShutdown  bool              /* Is node in process of shutting down? */
-	FingerTable []FingerEntry     /* Finger table entries */
-	ftLock      sync.RWMutex      /* RWLock for finger table */
-	dataStore   map[string]string /* Local datastore for this node */
-	dsLock      sync.RWMutex      /* RWLock for datastore */
-	BYTE_LENGTH int               /* Size of the byte */
+	Id              []byte            /* Unique Node ID */
+	Listener        net.Listener      /* Node listener socket */
+	Addr            string            /* String of listener address */
+	Successor       *RemoteNode       /* This Node's successor */
+	Predecessor     *RemoteNode       /* This Node's predecessor */
+	RemoteSelf      *RemoteNode       /* Remote node of our self */
+	IsShutdown      bool              /* Is node in process of shutting down? */
+	FingerTable     []FingerEntry     /* Finger table entries */
+	ftLock          sync.RWMutex      /* RWLock for finger table */
+	dataStore       map[string]string /* Local datastore for this node */
+	dsLock          sync.RWMutex      /* RWLock for datastore */
+	BYTE_LENGTH     int               /* Size of the byte */
+	dataMembersLock sync.Mutex        /* RWLock for dataMembers */
 }
 
 /* Creates a Chord node with a pre-defined ID (useful for testing) */

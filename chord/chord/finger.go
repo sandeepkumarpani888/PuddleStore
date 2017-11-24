@@ -9,6 +9,7 @@ package chord
 import (
 	"fmt"
 	"math/big"
+	"math/rand"
 	"time"
 )
 
@@ -28,12 +29,57 @@ func (node *Node) initFingerTable() {
 			Node:  node.RemoteSelf,
 		})
 	}
+	node.Predecessor = node.RemoteSelf
+}
+
+/* Already in lock */
+func (node *Node) initFingerTableWithNode(other *RemoteNode) {
+	successorRemoteNode, err := FindSuccessor_RPC(other, node.FingerTable[1].Start)
+	if err != nil {
+		return
+	}
+	node.ftLock.Lock()
+	node.FingerTable[1].Node = successorRemoteNode
+	predecessorRemoteNode, predErr := GetPredecessorId_RPC(node.FingerTable[1].Node)
+	if predErr != nil {
+		return
+	}
+	node.Predecessor = predecessorRemoteNode
+	// implement this function
+	SetPredecessor(predecessorRemoteNode, node.RemoteSelf)
+	for index := 1; index <= node.BYTE_LENGTH-1; index++ {
+		if BetweenLeftIncl(node.FingerTable[index+1].Node.Id, node.Id, node.FingerTable[index].Node.Id) {
+			node.FingerTable[index+1].Node = node.FingerTable[index].Node
+		} else {
+			successorRemoteNode, err = FindSuccessor_RPC(other, node.FingerTable[index+1].Start)
+			node.FingerTable[index+1].Node = successorRemoteNode
+		}
+	}
+	node.ftLock.Unlock()
+}
+
+func (node *Node) updateOthers() {
+	for index := 1; index <= node.BYTE_LENGTH; index++ {
+		predecessorNode, err := FindPredecessor_RPC(node.RemoteSelf, fingerMathSub(node.Id, index, node.BYTE_LENGTH))
+		if err != nil {
+			return
+		}
+		UpdateFingerTable_RPC(predecessorNode, node.RemoteSelf, index)
+	}
 }
 
 /* Called periodically (in a seperate go routine) to fix entries in our finger table. */
 func (node *Node) fixNextFinger(ticker *time.Ticker) {
 	for _ = range ticker.C {
-		//TODO students should implement this method
+		whichId := rand.Int() % (node.BYTE_LENGTH + 1)
+		if whichId > 1 {
+			succesor, err := FindSuccessor_RPC(node.RemoteSelf, node.FingerTable[whichId].Start)
+			if err == nil {
+				node.ftLock.Lock()
+				node.FingerTable[whichId].Node = succesor
+				node.ftLock.Unlock()
+			}
+		}
 	}
 }
 
@@ -54,6 +100,29 @@ func fingerMath(n []byte, i int, m int) []byte {
 	// got 2^i + n
 	powerRep.Add(&nInt, &powerRep)
 
+	powerRepMod.Mod(&powerRep, &powerRepMod)
+	return powerRepMod.Bytes()
+}
+
+/* (n - 2^i) mod (2^m) */
+func fingerMathSub(n []byte, i int, m int) []byte {
+	nInt := big.Int{}
+	// got N
+	nInt.SetBytes(n)
+	powerRep := big.Int{}
+
+	oneRep := big.NewInt(1)
+	// got 2^i
+	powerRep.Lsh(oneRep, uint(i))
+
+	powerRepMod := big.Int{}
+	// got 2^m
+	powerRepMod.Lsh(oneRep, uint(m))
+
+	// got n - 2^i
+	powerRep.Sub(&nInt, &powerRep)
+	// got n - 2^i + 2^m
+	powerRep.Add(&powerRep, &powerRepMod)
 	powerRepMod.Mod(&powerRep, &powerRepMod)
 	return powerRepMod.Bytes()
 }
