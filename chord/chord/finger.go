@@ -23,47 +23,26 @@ type FingerEntry struct {
 // TODO: Write test for this function
 func (node *Node) initFingerTable() {
 	// add a 0 index to make handling array easier
-	for index := 0; index <= node.BYTE_LENGTH; index++ {
+	for index := 0; index <= KEY_LENGTH; index++ {
 		node.FingerTable = append(node.FingerTable, FingerEntry{
-			Start: fingerMath(node.Id, index, node.BYTE_LENGTH),
+			Start: fingerMath(node.Id, index, KEY_LENGTH),
 			Node:  node.RemoteSelf,
 		})
 	}
+	PrintFingerTable(node)
 	node.Predecessor = node.RemoteSelf
 }
 
-/* Already in lock */
-func (node *Node) initFingerTableWithNode(other *RemoteNode) {
-	successorRemoteNode, err := FindSuccessor_RPC(other, node.FingerTable[1].Start)
-	if err != nil {
-		return
-	}
-	node.ftLock.Lock()
-	node.FingerTable[1].Node = successorRemoteNode
-	predecessorRemoteNode, predErr := GetPredecessorId_RPC(node.FingerTable[1].Node)
-	if predErr != nil {
-		return
-	}
-	node.Predecessor = predecessorRemoteNode
-	// implement this function
-	SetPredecessor(predecessorRemoteNode, node.RemoteSelf)
-	for index := 1; index <= node.BYTE_LENGTH-1; index++ {
-		if BetweenLeftIncl(node.FingerTable[index+1].Node.Id, node.Id, node.FingerTable[index].Node.Id) {
-			node.FingerTable[index+1].Node = node.FingerTable[index].Node
-		} else {
-			successorRemoteNode, err = FindSuccessor_RPC(other, node.FingerTable[index+1].Start)
-			node.FingerTable[index+1].Node = successorRemoteNode
-		}
-	}
-	node.ftLock.Unlock()
-}
-
 func (node *Node) updateOthers() {
-	for index := 1; index <= node.BYTE_LENGTH; index++ {
-		predecessorNode, err := FindPredecessor_RPC(node.RemoteSelf, fingerMathSub(node.Id, index, node.BYTE_LENGTH))
+	// fmt.Println("Start updating the other nodes(updateOthers)")
+	for index := 1; index <= KEY_LENGTH; index++ {
+		predecessorNode, err := node.findPredecessor(fingerMathSub(node.Id, index, KEY_LENGTH))
+		// predecessorNode, err := FindPredecessor_RPC(node.RemoteSelf, fingerMathSub(node.Id, index, KEY_LENGTH))
+		fmt.Println("Got the predecessor for the node(inside updateOthers)", node.Id, predecessorNode.Id, index)
 		if err != nil {
 			return
 		}
+		// fmt.Println("updating the finger table of the nodes", predecessorNode.Id, node.RemoteSelf.Id, index)
 		UpdateFingerTable_RPC(predecessorNode, node.RemoteSelf, index)
 	}
 }
@@ -71,7 +50,7 @@ func (node *Node) updateOthers() {
 /* Called periodically (in a seperate go routine) to fix entries in our finger table. */
 func (node *Node) fixNextFinger(ticker *time.Ticker) {
 	for _ = range ticker.C {
-		whichId := rand.Int() % (node.BYTE_LENGTH + 1)
+		whichId := rand.Int() % (KEY_LENGTH + 1)
 		if whichId > 1 {
 			succesor, err := FindSuccessor_RPC(node.RemoteSelf, node.FingerTable[whichId].Start)
 			if err == nil {

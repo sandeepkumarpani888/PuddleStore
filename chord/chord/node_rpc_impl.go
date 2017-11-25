@@ -28,16 +28,37 @@ func (node *Node) GetPredecessorId(req *RemoteId, reply *IdReply) error {
 	if err := validateRpc(node, req.Id); err != nil {
 		return err
 	}
-	// Predecessor may be nil, which is okay.
 	if node.Predecessor == nil {
 		reply.Id = nil
 		reply.Addr = ""
 		reply.Valid = false
 	} else {
-		reply.Id = node.Predecessor.Id
 		reply.Addr = node.Predecessor.Addr
+		reply.Id = node.Predecessor.Id
 		reply.Valid = true
 	}
+	return nil
+}
+
+/* RPC */
+func (node *Node) FindPredecessorGivenID(req *RemoteQuery, reply *IdReply) error {
+	// fmt.Println("We are trying to get the predecessor for the given id (FindPredecessor)", node.Id, req.Id)
+	if err := validateRpc(node, req.FromId); err != nil {
+		return err
+	}
+	// Predecessor may be nil, which is okay.
+	remoteNode, errFromFindPredecessor := node.findPredecessor(req.Id)
+	if errFromFindPredecessor != nil {
+		// fmt.Println("We got an error from finding the predecessor with the given id", errFromFindPredecessor)
+		reply.Addr = ""
+		reply.Id = nil
+		reply.Valid = false
+	} else {
+		reply.Addr = remoteNode.Addr
+		reply.Id = remoteNode.Id
+		reply.Valid = true
+	}
+	// fmt.Println("We are returning the predecessor for the node with ID", node.Id, reply.Id)
 	return nil
 }
 
@@ -46,8 +67,6 @@ func (node *Node) GetSuccessorId(req *RemoteId, reply *IdReply) error {
 	if err := validateRpc(node, req.Id); err != nil {
 		return err
 	}
-	node.dataMembersLock.Lock()
-	defer node.dataMembersLock.Unlock()
 	if node.Successor == nil {
 		reply.Id = nil
 		reply.Addr = ""
@@ -57,16 +76,15 @@ func (node *Node) GetSuccessorId(req *RemoteId, reply *IdReply) error {
 		reply.Addr = node.Successor.Addr
 		reply.Valid = true
 	}
+	// fmt.Println("We got the successor for the node", req.Id, reply)
 	return nil
 }
 
 /* RPC */
 func (node *Node) Notify(remoteNode *RemoteNode, reply *RpcOkay) error {
-	node.dataMembersLock.Lock()
 	if node.Predecessor == nil || Between(remoteNode.Id, node.Predecessor.Id, node.Id) {
 		node.Predecessor = remoteNode
 	}
-	node.dataMembersLock.Unlock()
 	return nil
 }
 
@@ -75,17 +93,13 @@ func (node *Node) FindSuccessor(query *RemoteQuery, reply *IdReply) error {
 	if err := validateRpc(node, query.FromId); err != nil {
 		return err
 	}
-	succesorNode, err := node.findSuccessor(query.Id)
-	if err != nil {
-		reply.Id = nil
-		reply.Addr = ""
-		reply.Valid = false
-		return err
-	} else {
-		reply.Id = succesorNode.Id
-		reply.Addr = succesorNode.Addr
-		reply.Valid = true
+	successorNode, errSucc := node.findSuccessor(query.Id)
+	if errSucc != nil {
+		return errSucc
 	}
+	reply.Addr = successorNode.Addr
+	reply.Id = successorNode.Id
+	reply.Valid = true
 	return nil
 }
 
@@ -126,9 +140,12 @@ func (node *Node) SetPredecessor(query *RemoteSetPredecessor, reply *RpcOkay) er
 	if err := validateRpc(node, query.FromId); err != nil {
 		return err
 	}
-	err := node.setPredecessor(&RemoteNode{
+	// fmt.Println("Setting the predecessor", node.RemoteSelf.Addr, node.RemoteSelf.Id, query.Addr, query.Id)
+	node.Predecessor = &RemoteNode{
 		Id:   query.Id,
 		Addr: query.Addr,
-	})
-	return err
+	}
+	// fmt.Println("We are updating the predecessor of the node", node.Id, query.Id)
+	reply.Ok = true
+	return nil
 }

@@ -84,7 +84,7 @@ func GetPredecessorId_RPC(remoteNode *RemoteNode) (*RemoteNode, error) {
 	rNode := new(RemoteNode)
 	rNode.Id = reply.Id
 	rNode.Addr = reply.Addr
-	return rNode, err
+	return rNode, nil
 }
 
 /* Get the successor ID of a remote node */
@@ -97,6 +97,7 @@ func GetSuccessorId_RPC(remoteNode *RemoteNode) (*RemoteNode, error) {
 	rNode := new(RemoteNode)
 	rNode.Id = reply.Id
 	rNode.Addr = reply.Addr
+	// fmt.Println("We are returning the successor of the node", remoteNode.Id, rNode.Id)
 	return rNode, err
 }
 
@@ -147,8 +148,13 @@ func FindPredecessor_RPC(remoteNode *RemoteNode, id []byte) (*RemoteNode, error)
 	if remoteNode == nil {
 		return nil, errors.New("RemoteNode is empty!")
 	}
+	// fmt.Println("We are trying to return the predecessor for the node with the closest Id to ring RPC", remoteNode, id)
 	var reply IdReply
-	err := makeRemoteCall(remoteNode, "FindPredecessor", RemoteQuery{remoteNode.Id, id}, &reply)
+	err := makeRemoteCall(remoteNode, "FindPredecessorGivenID", RemoteQuery{remoteNode.Id, id}, &reply)
+	if err != nil {
+		fmt.Println("We have encountered an error", err)
+	}
+	// fmt.Println("We got some reply for FindPredecessor_RPC", reply)
 
 	rNode := new(RemoteNode)
 	rNode.Id = reply.Id
@@ -246,6 +252,7 @@ func makeRemoteCall(remoteNode *RemoteNode, method string, req interface{}, rsp 
 
 	// Make the request
 	uniqueMethodName := fmt.Sprintf("%v.%v", remoteNodeAddrStr, method)
+	// fmt.Println("We are calling the function", uniqueMethodName)
 	err = client.Call(uniqueMethodName, req, rsp)
 	if err != nil {
 		return err

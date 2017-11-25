@@ -42,7 +42,6 @@ type Node struct {
 	ftLock          sync.RWMutex      /* RWLock for finger table */
 	dataStore       map[string]string /* Local datastore for this node */
 	dsLock          sync.RWMutex      /* RWLock for datastore */
-	BYTE_LENGTH     int               /* Size of the byte */
 	dataMembersLock sync.Mutex        /* RWLock for dataMembers */
 }
 
@@ -86,21 +85,23 @@ func (node *Node) init(parent *RemoteNode, definedId []byte) error {
 	node.Addr = listener.Addr().String()
 	node.IsShutdown = false
 	node.dataStore = make(map[string]string)
-	node.BYTE_LENGTH = len(node.Id)
 
 	// Populate RemoteNode that points to self
 	node.RemoteSelf = new(RemoteNode)
 	node.RemoteSelf.Id = node.Id
 	node.RemoteSelf.Addr = node.Addr
+	fmt.Println("Initialised all the required varaibles for the node", node.Addr, node.Id)
 
 	// Join this node to the same chord ring as parent
 	err = node.join(parent)
 	if err != nil {
 		return err
 	}
+	fmt.Println("Joined the same ring as the parent")
 
 	// Populate finger table
-	node.initFingerTable()
+	//node.initFingerTable()
+	fmt.Println("Finger table is also initialised")
 
 	// Thread 1: start RPC server on this connection
 	rpc.RegisterName(node.Addr, node)

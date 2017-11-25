@@ -72,6 +72,9 @@ func Between(nodeX, nodeA, nodeB []byte) bool {
 	if bInt.Cmp(&aInt) == -1 && xInt.Cmp(&aInt) == -1 && xInt.Cmp(&bInt) == -1 {
 		return true
 	}
+	if bInt.Cmp(&aInt) == 0 {
+		return true
+	}
 	return false
 }
 
@@ -94,6 +97,9 @@ func BetweenRightIncl(nodeX, nodeA, nodeB []byte) bool {
 		return true
 	}
 	if bInt.Cmp(&aInt) == -1 && xInt.Cmp(&aInt) == -1 && xInt.Cmp(&bInt) <= 0 {
+		return true
+	}
+	if bInt.Cmp(&aInt) == 0 {
 		return true
 	}
 	return false
