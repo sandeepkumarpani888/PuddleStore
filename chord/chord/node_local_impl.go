@@ -7,15 +7,15 @@
 package chord
 
 import (
+	"fmt"
 	"log"
 	"time"
 )
 
 // This node is trying to join an existing ring that a remote node is a part of (i.e., other)
 func (node *Node) join(other *RemoteNode) error {
-	// // consider the case when the ring is empty and not empty
 	node.initFingerTable()
-	node.Predecessor = node.RemoteSelf
+	node.Predecessor = nil
 	node.Successor = node.RemoteSelf
 	if other == nil {
 		return nil
@@ -25,6 +25,8 @@ func (node *Node) join(other *RemoteNode) error {
 		return err
 	}
 	node.Successor = successorNode
+	node.Predecessor = successorNode
+	node.FingerTable[1].Node = node.Successor
 	return nil
 }
 
@@ -33,7 +35,7 @@ func (node *Node) stabilize(ticker *time.Ticker) {
 	for _ = range ticker.C {
 		// fmt.Println("We are trying to stabilize the node", node.Id)
 		if node.IsShutdown {
-			// fmt.Printf("[%v-stabilize] Shutting down stabilize timer\n", HashStr(node.Id))
+			fmt.Printf("[%v-stabilize] Shutting down stabilize timer\n", HashStr(node.Id))
 			ticker.Stop()
 			return
 		}
@@ -42,8 +44,9 @@ func (node *Node) stabilize(ticker *time.Ticker) {
 		if err != nil {
 			return
 		}
-		if Between(predecessorOfSuccessorRemoteNode.Id, node.Id, successorRemoteNode.Id) {
+		if predecessorOfSuccessorRemoteNode != nil && Between(predecessorOfSuccessorRemoteNode.Id, node.Id, successorRemoteNode.Id) {
 			node.Successor = predecessorOfSuccessorRemoteNode
+			node.FingerTable[1].Node = node.Successor
 		}
 		Notify_RPC(node.Successor, node.RemoteSelf)
 	}
@@ -74,10 +77,7 @@ func (node *Node) findSuccessor(id []byte) (*RemoteNode, error) {
 // Psuedocode from figure 4 of chord paper
 func (node *Node) findPredecessor(id []byte) (*RemoteNode, error) {
 	remoteNode := node.RemoteSelf
-	// fmt.Println("We are trying to get the predecessor with id:%v for node:%v (findPredecessor)", id, node.Id)
-	// defer fmt.Println("We have found the predecessor for the node", node.Id, id)
 	for true {
-		// fmt.Println("Trying to find the node(findPredecessor)", remoteNode.Id)
 		var remoteNodeSucc *RemoteNode
 		var rpcErr error
 		if EqualIds(remoteNode.Id, node.Id) {
@@ -85,12 +85,9 @@ func (node *Node) findPredecessor(id []byte) (*RemoteNode, error) {
 		} else {
 			remoteNodeSucc, rpcErr = GetSuccessorId_RPC(remoteNode)
 		}
-		// remoteNodeSucc, rpcErr := GetSuccessorId_RPC(remoteNode)
-		// fmt.Println("Got the successor node: %v (findPredecessor)", remoteNodeSucc)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
-		// fmt.Println("We are comapring", id, remoteNode.Id, remoteNodeSucc.Id)
 		if BetweenRightIncl(id, remoteNode.Id, remoteNodeSucc.Id) {
 			return remoteNode, nil
 		}

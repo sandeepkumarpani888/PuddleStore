@@ -30,6 +30,7 @@ func (node *Node) initFingerTable() {
 		})
 	}
 	PrintFingerTable(node)
+	node.Successor = node.RemoteSelf
 	node.Predecessor = node.RemoteSelf
 }
 
@@ -51,11 +52,14 @@ func (node *Node) updateOthers() {
 func (node *Node) fixNextFinger(ticker *time.Ticker) {
 	for _ = range ticker.C {
 		whichId := rand.Int() % (KEY_LENGTH + 1)
-		if whichId > 1 {
-			succesor, err := FindSuccessor_RPC(node.RemoteSelf, node.FingerTable[whichId].Start)
+		if whichId >= 1 {
+			succesor, err := node.findSuccessor(node.FingerTable[whichId].Start)
 			if err == nil {
 				node.ftLock.Lock()
 				node.FingerTable[whichId].Node = succesor
+				if whichId == 1 {
+					node.Successor = succesor
+				}
 				node.ftLock.Unlock()
 			}
 		}
@@ -64,23 +68,35 @@ func (node *Node) fixNextFinger(ticker *time.Ticker) {
 
 /* (n + 2^i) mod (2^m) */
 func fingerMath(n []byte, i int, m int) []byte {
-	nInt := big.Int{}
-	// got N
-	nInt.SetBytes(n)
-	powerRep := big.Int{}
+	two := &big.Int{}
+	two.SetInt64(2)
 
-	oneRep := big.NewInt(1)
-	// got 2^i
-	powerRep.Lsh(oneRep, uint(i))
+	N := &big.Int{}
+	N.SetBytes(n)
 
-	powerRepMod := big.Int{}
-	powerRepMod.Lsh(oneRep, uint(m))
+	// 2^i
+	I := &big.Int{}
+	I.SetInt64(int64(i))
+	I.Exp(two, I, nil)
 
-	// got 2^i + n
-	powerRep.Add(&nInt, &powerRep)
+	// 2^m
+	M := &big.Int{}
+	M.SetInt64(int64(m))
+	M.Exp(two, M, nil)
 
-	powerRepMod.Mod(&powerRep, &powerRepMod)
-	return powerRepMod.Bytes()
+	result := &big.Int{}
+	result.Add(N, I)
+	result.Mod(result, M)
+
+	// Big int gives an empty array if value is 0.
+	// Here is a way for us to still return a 0 byte
+	zero := &big.Int{}
+	zero.SetInt64(0)
+	if result.Cmp(zero) == 0 {
+		return []byte{0}
+	}
+
+	return result.Bytes()
 }
 
 /* (n - 2^i) mod (2^m) */
