@@ -43,6 +43,7 @@ type Node struct {
 	dataStore       map[string]string /* Local datastore for this node */
 	dsLock          sync.RWMutex      /* RWLock for datastore */
 	dataMembersLock sync.Mutex        /* RWLock for dataMembers */
+	fixFingerIndex  int               /* Used to indicate the index of which finger we are gonna fix*/
 }
 
 /* Creates a Chord node with a pre-defined ID (useful for testing) */
@@ -90,6 +91,7 @@ func (node *Node) init(parent *RemoteNode, definedId []byte) error {
 	node.RemoteSelf = new(RemoteNode)
 	node.RemoteSelf.Id = node.Id
 	node.RemoteSelf.Addr = node.Addr
+	node.fixFingerIndex = 1
 	fmt.Println("Initialised all the required varaibles for the node", node.Addr, node.Id)
 
 	// Join this node to the same chord ring as parent

@@ -9,7 +9,6 @@ package chord
 import (
 	"fmt"
 	"math/big"
-	"math/rand"
 	"time"
 )
 
@@ -51,17 +50,19 @@ func (node *Node) updateOthers() {
 /* Called periodically (in a seperate go routine) to fix entries in our finger table. */
 func (node *Node) fixNextFinger(ticker *time.Ticker) {
 	for _ = range ticker.C {
-		whichId := rand.Int() % (KEY_LENGTH + 1)
-		if whichId >= 1 {
-			succesor, err := node.findSuccessor(node.FingerTable[whichId].Start)
-			if err == nil {
-				node.ftLock.Lock()
-				node.FingerTable[whichId].Node = succesor
-				if whichId == 1 {
-					node.Successor = succesor
-				}
-				node.ftLock.Unlock()
+		succesor, err := node.findSuccessor(node.FingerTable[node.fixFingerIndex].Start)
+		fmt.Println("We are fixing fingerIndex: %v for node:%v", node.fixFingerIndex, node.Id, succesor.Id)
+		if err == nil {
+			node.ftLock.Lock()
+			node.FingerTable[node.fixFingerIndex].Node = succesor
+			node.fixFingerIndex++
+			if node.fixFingerIndex == KEY_LENGTH {
+				node.fixFingerIndex = 1
 			}
+			if node.fixFingerIndex == 1 {
+				node.Successor = succesor
+			}
+			node.ftLock.Unlock()
 		}
 	}
 }

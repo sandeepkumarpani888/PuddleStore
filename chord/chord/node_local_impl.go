@@ -121,7 +121,6 @@ func (node *Node) findClosestPrecedingFinger(id []byte) (*RemoteNode, error) {
 	// fmt.Println("Trying to get the closestPrecedingFinger", node.Id)
 	for index := KEY_LENGTH; index >= 1; index-- {
 		if Between(node.FingerTable[index].Node.Id, node.Id, id) {
-			// fmt.Println("The closest preceding finger is", node.FingerTable[index].Node)
 			return node.FingerTable[index].Node, nil
 		}
 	}

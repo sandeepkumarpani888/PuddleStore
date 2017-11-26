@@ -62,17 +62,19 @@ func Between(nodeX, nodeA, nodeB []byte) bool {
 	xInt := big.Int{}
 	xInt.SetBytes(nodeX)
 
-	// nodeB is greater than nodeA
-	var result bool
-	if aInt.Cmp(&bInt) == 0 {
-		result = false
-	} else if aInt.Cmp(&bInt) < 0 {
-		result = (xInt.Cmp(&aInt) == 1 && xInt.Cmp(&bInt) == -1)
-	} else {
-		result = !(xInt.Cmp(&bInt) == 1 && xInt.Cmp(&aInt) == -1)
+	var reply bool
+	reply = false
+	if bInt.Cmp(&aInt) == 0 {
+		reply = false
 	}
-
-	return result
+	if bInt.Cmp(&aInt) == 1 && xInt.Cmp(&aInt) == 1 && bInt.Cmp(&xInt) == 1 {
+		reply = true
+	}
+	if bInt.Cmp(&aInt) == -1 && xInt.Cmp(&aInt) == xInt.Cmp(&bInt) {
+		reply = true
+	}
+	// fmt.Println("Doing operation between: %v %v %v: %v", nodeX, nodeA, nodeB, reply, bInt.Cmp(&aInt), xInt.Cmp(&aInt), xInt.Cmp(&bInt))
+	return reply
 }
 
 /* Is X between (A : B] */
@@ -86,17 +88,22 @@ func BetweenRightIncl(nodeX, nodeA, nodeB []byte) bool {
 
 	xInt := big.Int{}
 	xInt.SetBytes(nodeX)
-
-	var result bool
+	var reply bool
+	reply = false
 	if aInt.Cmp(&bInt) == 0 {
-		result = true
-	} else if aInt.Cmp(&bInt) < 0 {
-		result = (xInt.Cmp(&aInt) == 1 && xInt.Cmp(&bInt) <= 0)
-	} else {
-		result = !(xInt.Cmp(&bInt) == 1 && xInt.Cmp(&aInt) <= 0)
+		reply = true
 	}
-
-	return result
+	if bInt.Cmp(&aInt) == 1 && xInt.Cmp(&aInt) == 1 && bInt.Cmp(&xInt) <= 0 {
+		reply = true
+	}
+	if bInt.Cmp(&aInt) == -1 && xInt.Cmp(&aInt) == xInt.Cmp(&bInt) {
+		reply = true
+	}
+	if bInt.Cmp(&aInt) == -1 && xInt.Cmp(&bInt) == 0 {
+		reply = true
+	}
+	// fmt.Println("Doing operation betweenRightIncl: %v %v %v: %v", nodeX, nodeA, nodeB, reply)
+	return reply
 }
 
 /* Is X between [A: B) */
