@@ -82,9 +82,8 @@ func (node *Node) GetSuccessorId(req *RemoteId, reply *IdReply) error {
 
 /* RPC */
 func (node *Node) Notify(remoteNode *RemoteNode, reply *RpcOkay) error {
-	if node.Predecessor == nil || Between(remoteNode.Id, node.Predecessor.Id, node.Id) {
-		node.Predecessor = remoteNode
-	}
+	node.notify(remoteNode)
+	reply.Ok = true
 	return nil
 }
 
@@ -121,18 +120,6 @@ func (node *Node) ClosestPrecedingFinger(query *RemoteQuery, reply *IdReply) err
 		reply.Valid = true
 	}
 	return nil
-}
-
-/* RPC */
-func (node *Node) UpdateFingerTable(query *RemoteFingerEntry, reply *RpcOkay) error {
-	if err := validateRpc(node, query.FromId); err != nil {
-		return err
-	}
-	err := node.updateFingerTable(&RemoteNode{
-		Id:   query.Id,
-		Addr: query.Addr,
-	}, query.Index)
-	return err
 }
 
 /* RPC */

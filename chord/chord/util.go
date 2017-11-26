@@ -65,7 +65,7 @@ func Between(nodeX, nodeA, nodeB []byte) bool {
 	var reply bool
 	reply = false
 	if bInt.Cmp(&aInt) == 0 {
-		reply = false
+		reply = true
 	}
 	if bInt.Cmp(&aInt) == 1 && xInt.Cmp(&aInt) == 1 && bInt.Cmp(&xInt) == 1 {
 		reply = true

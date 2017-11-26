@@ -30,7 +30,6 @@ func (node *Node) initFingerTable() {
 	}
 	PrintFingerTable(node)
 	node.Successor = node.RemoteSelf
-	node.Predecessor = node.RemoteSelf
 }
 
 func (node *Node) updateOthers() {
@@ -50,6 +49,7 @@ func (node *Node) updateOthers() {
 /* Called periodically (in a seperate go routine) to fix entries in our finger table. */
 func (node *Node) fixNextFinger(ticker *time.Ticker) {
 	for _ = range ticker.C {
+		node.fixFingerIndex = 2
 		succesor, err := node.findSuccessor(node.FingerTable[node.fixFingerIndex].Start)
 		fmt.Println("We are fixing fingerIndex: %v for node:%v", node.fixFingerIndex, node.Id, succesor.Id)
 		if err == nil {

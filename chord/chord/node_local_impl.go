@@ -8,7 +8,6 @@ package chord
 
 import (
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -24,16 +23,17 @@ func (node *Node) join(other *RemoteNode) error {
 	if err != nil {
 		return err
 	}
+	node.ftLock.Lock()
 	node.Successor = successorNode
-	node.Predecessor = successorNode
-	node.FingerTable[1].Node = node.Successor
+	node.FingerTable[1].Node = successorNode
+	node.ftLock.Unlock()
+	PrintFingerTable(node)
 	return nil
 }
 
 // Thread 2: Psuedocode from figure 7 of chord paper
 func (node *Node) stabilize(ticker *time.Ticker) {
 	for _ = range ticker.C {
-		// fmt.Println("We are trying to stabilize the node", node.Id)
 		if node.IsShutdown {
 			fmt.Printf("[%v-stabilize] Shutting down stabilize timer\n", HashStr(node.Id))
 			ticker.Stop()
@@ -42,20 +42,25 @@ func (node *Node) stabilize(ticker *time.Ticker) {
 		successorRemoteNode := node.Successor
 		predecessorOfSuccessorRemoteNode, err := GetPredecessorId_RPC(successorRemoteNode)
 		if err != nil {
+			fmt.Println("We encountered an error while going with this plan", err)
 			return
 		}
 		if predecessorOfSuccessorRemoteNode != nil && Between(predecessorOfSuccessorRemoteNode.Id, node.Id, successorRemoteNode.Id) {
 			node.Successor = predecessorOfSuccessorRemoteNode
 			node.FingerTable[1].Node = node.Successor
 		}
+		fmt.Println("We are gonna notify the node(%v): that node(%v) is predecessor", node.Successor.Id, node.RemoteSelf.Id)
 		Notify_RPC(node.Successor, node.RemoteSelf)
 	}
 }
 
 // Psuedocode from figure 7 of chord paper
 func (node *Node) notify(remoteNode *RemoteNode) {
-	node.dataMembersLock.Lock()
-	defer node.dataMembersLock.Unlock()
+	node.ftLock.Lock()
+	defer node.ftLock.Unlock()
+	if node.Predecessor != nil {
+		fmt.Println("(NOTIFY(%v)(%v))::Current predecessor of the node (%v) is (%v)", node.Id, remoteNode.Id, node.Id, node.Predecessor.Id)
+	}
 	if node.Predecessor == nil || Between(remoteNode.Id, node.Predecessor.Id, node.Id) {
 		node.Predecessor = remoteNode
 	}
@@ -103,18 +108,6 @@ func (node *Node) findPredecessor(id []byte) (*RemoteNode, error) {
 		remoteNode = closestPrecedingFingerTableEntry
 	}
 	return remoteNode, nil
-}
-
-func (node *Node) updateFingerTable(remoteNode *RemoteNode, index int) error {
-	if BetweenLeftIncl(remoteNode.Id, node.Id, node.FingerTable[index].Node.Id) {
-		node.FingerTable[index].Node = remoteNode
-		predecessorNode := node.Predecessor
-		if predecessorNode == nil {
-			log.Fatal("WE are so screwed")
-		}
-		UpdateFingerTable_RPC(predecessorNode, remoteNode, index)
-	}
-	return nil
 }
 
 func (node *Node) findClosestPrecedingFinger(id []byte) (*RemoteNode, error) {
