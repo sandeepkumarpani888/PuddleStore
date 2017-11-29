@@ -21,8 +21,7 @@ type FingerEntry struct {
 /* Create initial finger table that only points to itself, will be fixed later */
 // TODO: Write test for this function
 func (node *Node) initFingerTable() {
-	// add a 0 index to make handling array easier
-	for index := 0; index <= KEY_LENGTH; index++ {
+	for index := 0; index < KEY_LENGTH; index++ {
 		node.FingerTable = append(node.FingerTable, FingerEntry{
 			Start: fingerMath(node.Id, index, KEY_LENGTH),
 			Node:  node.RemoteSelf,
@@ -32,35 +31,21 @@ func (node *Node) initFingerTable() {
 	node.Successor = node.RemoteSelf
 }
 
-func (node *Node) updateOthers() {
-	// fmt.Println("Start updating the other nodes(updateOthers)")
-	for index := 1; index <= KEY_LENGTH; index++ {
-		predecessorNode, err := node.findPredecessor(fingerMathSub(node.Id, index, KEY_LENGTH))
-		// predecessorNode, err := FindPredecessor_RPC(node.RemoteSelf, fingerMathSub(node.Id, index, KEY_LENGTH))
-		fmt.Println("Got the predecessor for the node(inside updateOthers)", node.Id, predecessorNode.Id, index)
-		if err != nil {
-			return
-		}
-		// fmt.Println("updating the finger table of the nodes", predecessorNode.Id, node.RemoteSelf.Id, index)
-		UpdateFingerTable_RPC(predecessorNode, node.RemoteSelf, index)
-	}
-}
-
 /* Called periodically (in a seperate go routine) to fix entries in our finger table. */
 func (node *Node) fixNextFinger(ticker *time.Ticker) {
 	for _ = range ticker.C {
-		node.fixFingerIndex = 2
+		// node.fixFingerIndex = 2
 		succesor, err := node.findSuccessor(node.FingerTable[node.fixFingerIndex].Start)
 		fmt.Println("We are fixing fingerIndex: %v for node:%v", node.fixFingerIndex, node.Id, succesor.Id)
 		if err == nil {
 			node.ftLock.Lock()
 			node.FingerTable[node.fixFingerIndex].Node = succesor
 			node.fixFingerIndex++
-			if node.fixFingerIndex == KEY_LENGTH {
-				node.fixFingerIndex = 1
-			}
 			if node.fixFingerIndex == 1 {
 				node.Successor = succesor
+			}
+			if node.fixFingerIndex >= KEY_LENGTH {
+				node.fixFingerIndex = 1
 			}
 			node.ftLock.Unlock()
 		}
@@ -98,29 +83,6 @@ func fingerMath(n []byte, i int, m int) []byte {
 	}
 
 	return result.Bytes()
-}
-
-/* (n - 2^i) mod (2^m) */
-func fingerMathSub(n []byte, i int, m int) []byte {
-	nInt := big.Int{}
-	// got N
-	nInt.SetBytes(n)
-	powerRep := big.Int{}
-
-	oneRep := big.NewInt(1)
-	// got 2^i
-	powerRep.Lsh(oneRep, uint(i))
-
-	powerRepMod := big.Int{}
-	// got 2^m
-	powerRepMod.Lsh(oneRep, uint(m))
-
-	// got n - 2^i
-	powerRep.Sub(&nInt, &powerRep)
-	// got n - 2^i + 2^m
-	powerRep.Add(&powerRep, &powerRepMod)
-	powerRepMod.Mod(&powerRep, &powerRepMod)
-	return powerRepMod.Bytes()
 }
 
 /* Print contents of a node's finger table */

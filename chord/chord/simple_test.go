@@ -24,7 +24,13 @@ func TestTwoNodes(t *testing.T) {
 	if errSecond != nil {
 		t.Errorf("Unable to create node, error: %v\n", errSecond)
 	}
-	time.Sleep(5 * time.Second)
+	// time.Sleep(5 * time.Second)
+	// thirdNode, errThird := CreateNode(firstNode.RemoteSelf)
+	// if errThird != nil {
+	// 	t.Errorf("Unable to create node")
+	// }
+	time.Sleep(20 * time.Second)
 	PrintFingerTable(firstNode)
 	PrintFingerTable(secondNode)
+	// PrintFingerTable(thirdNode)
 }
